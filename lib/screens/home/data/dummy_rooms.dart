@@ -1,4 +1,5 @@
-import '../../../models/room_model.dart';
+import '../../../data/models/room_model.dart';
+
 
 final List<RoomModel> dummyRooms = [
   RoomModel(

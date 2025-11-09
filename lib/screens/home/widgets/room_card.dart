@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../models/room_model.dart';
+import '../../../data/models/room_model.dart';
 import '../../../theme/text_styles.dart';
 import '../../../theme/colors.dart';
 
