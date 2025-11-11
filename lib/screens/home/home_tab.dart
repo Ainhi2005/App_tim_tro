@@ -87,6 +87,20 @@ class _HomeTabState extends State<HomeTab> {
             }).toList(),
           ),
         ),
+        Positioned(
+          top: 30,  // Khoảng cách từ cạnh trên của slider
+          right: 10, // Khoảng cách từ cạnh phải của slider
+          child: IconButton(
+            icon: const Icon(
+              Icons.notifications_outlined,
+              color: Colors.white, // Giữ màu trắng để nổi bật
+              size: 30, // Tăng kích thước một chút nếu muốn
+            ),
+            onPressed: () {
+              // Ví dụ: Điều hướng tới trang thông báo
+            },
+          ),
+        ),
       ],
     );
   }
