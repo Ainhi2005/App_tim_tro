@@ -22,8 +22,8 @@ class BottomNavBar extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(35),   // ✅ Bo góc trên trái
-              topRight: Radius.circular(35),  // ✅ Bo góc trên phải
+              topLeft: Radius.circular(35), // ✅ Bo góc trên trái
+              topRight: Radius.circular(35), // ✅ Bo góc trên phải
             ),
             boxShadow: [
               BoxShadow(
@@ -112,7 +112,7 @@ class BottomNavBar extends StatelessWidget {
 
   Widget _buildCenterNavItem() {
     // Kích thước của icon: Giữ nguyên 30x30px
-    const double iconSize = 30;
+    const double _ = 30;
 
     return GestureDetector(
       onTap: () => onTap(2),
@@ -124,7 +124,8 @@ class BottomNavBar extends StatelessWidget {
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: AppColors.primaryBlue.withOpacity(0.4), // Dùng withOpacity thay vì withValues
+              color: AppColors.primaryBlue.withAlpha((255 * 0.4).round()), // (255 * 0.4) là 102
+              // highlight-end
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),

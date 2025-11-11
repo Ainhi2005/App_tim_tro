@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'theme/app_theme.dart';
 import 'screens/home/home_page.dart';
 
 class TimTroApp extends StatelessWidget {
@@ -8,9 +7,12 @@ class TimTroApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'App Tìm Trọ',
+      title: 'Tim Tro',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
+      theme: ThemeData(
+        primaryColor: const Color(0xFF1E40AF),
+        scaffoldBackgroundColor: Colors.white,
+      ),
       home: const HomePage(),
     );
   }
