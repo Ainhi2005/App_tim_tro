@@ -1,14 +1,33 @@
+// lib/data/viewModel/HomeViewModel.dart
+
 import 'package:flutter/material.dart';
 import '../models/room_model.dart';
+import '../repositories/home_repositor.dart';
+import '../service/api_service.dart';
+import 'package:dio/dio.dart';
+
+// Screens
 import '../../screens/home/home_tab.dart';
 import '../../screens/video/video_page.dart';
 import '../../screens/map/map_page.dart';
 import '../../screens/chat/chat_page.dart';
 import '../../screens/account/account_page.dart';
 
+enum ViewState { idle, loading, success, error }
+
 class HomeViewModel extends ChangeNotifier {
   // -------------------
-  // Slider, danh mục, phòng
+  // Repository
+  // -------------------
+  late final HomeRepository _repo;
+
+  HomeViewModel() {
+    _repo = HomeRepository(ApiService(Dio()));
+    fetchRooms();
+  }
+
+  // -------------------
+  // Dữ liệu UI tĩnh
   // -------------------
   final List<String> images = [
     'assets/images/slide1.jpg',
@@ -23,21 +42,51 @@ class HomeViewModel extends ChangeNotifier {
     {"title": "Dormstay", "icon": "assets/icons/dormstay.png"},
   ];
 
-  final List<RoomModel> exploreRooms = [
-    RoomModel(name: 'Phòng cao cấp Q.1', address: '2W Street, NY, New York', price: 3000000, imageUrl: 'assets/images/room1.jpg'),
-    RoomModel(name: 'Căn hộ Mini Q.Tân Bình', address: '4W Street, NY, New York', price: 20000000, imageUrl: 'assets/images/room2.jpg'),
-    RoomModel(name: 'Nhà nguyên căn Bình Thạnh', address: '5W Street, NY, New York', price: 3450000, imageUrl: 'assets/images/room3.jpg'),
-  ];
+  // -------------------
+  // Dữ liệu động từ API
+  // -------------------
+  List<RoomModel> exploreRooms = [];
+  List<RoomModel> featuredRooms = [];
 
-  final List<RoomModel> featuredRooms = [
-    RoomModel(name: 'Phòng trọ mới xây', address: '28/3 Nguyễn Xí, Bình Thạnh', price: 3800000, imageUrl: 'assets/images/room1.jpg'),
-    RoomModel(name: 'Chung cư mini cao cấp', address: 'Hẻm 458/16 Lê Văn Lương, Q.7', price: 5500000, imageUrl: 'assets/images/room2.jpg'),
-    RoomModel(name: 'Nhà nguyên căn 2PN', address: '123/A/4 Trường Chinh, Tân Bình', price: 8000000, imageUrl: 'assets/images/room3.jpg'),
-    RoomModel(name: 'Dormstay hiện đại', address: '10/B/9 Phạm Văn Đồng, Thủ Đức', price: 1500000, imageUrl: 'assets/images/room1.jpg'),
-  ];
+  ViewState _state = ViewState.idle;
+  String errorMessage = "";
+
+  ViewState get state => _state;
 
   // -------------------
-  // Tab Index (dynamic)
+  // Tải dữ liệu phòng từ Repository
+  // -------------------
+  Future<void> fetchRooms() async {
+    _state = ViewState.loading;
+    notifyListeners();
+
+    try {
+      final List<RoomModel> rooms = await _repo.getRooms();
+
+      if (rooms.length >= 3) {
+        exploreRooms = rooms.sublist(0, 3);
+        featuredRooms = rooms.sublist(3);
+      } else {
+        exploreRooms = rooms;
+        featuredRooms = [];
+      }
+
+      _state = ViewState.success;
+      notifyListeners();
+    } catch (e) {
+      _state = ViewState.error;
+      errorMessage = "Lỗi khi tải phòng: $e";
+      print(errorMessage);
+      notifyListeners();
+    }
+  }
+
+  Future<void> refresh() async {
+    await fetchRooms();
+  }
+
+  // -------------------
+  // Logic xử lý Tab
   // -------------------
   int selectedIndex = 0;
 
@@ -46,11 +95,11 @@ class HomeViewModel extends ChangeNotifier {
     const VideoPage(),
     const MapPage(),
     const ChatPage(),
-    const AccountPage(),
+    const AccountPage()
   ];
 
   void changeTab(int index) {
     selectedIndex = index;
-    notifyListeners(); // 🔹 thông báo UI rebuild
+    notifyListeners();
   }
 }
