@@ -1,0 +1,1761 @@
+--
+-- PostgreSQL database dump
+--
+
+\restrict 9U3QZRRx24r9i4ODELrB2ixRbcznhMWF0F2Ef0pvBnUF4cLfW9Tq7ykR3ubW4Ke
+
+-- Dumped from database version 18.0
+-- Dumped by pg_dump version 18.0
+
+-- Started on 2025-11-16 12:08:49
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- TOC entry 2 (class 3079 OID 16610)
+-- Name: uuid-ossp; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
+
+
+--
+-- TOC entry 5242 (class 0 OID 0)
+-- Dependencies: 2
+-- Name: EXTENSION "uuid-ossp"; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION "uuid-ossp" IS 'generate universally unique identifiers (UUIDs)';
+
+
+--
+-- TOC entry 252 (class 1255 OID 16929)
+-- Name: update_updated_at_column(); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.update_updated_at_column() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION public.update_updated_at_column() OWNER TO postgres;
+
+--
+-- TOC entry 253 (class 1255 OID 16934)
+-- Name: validate_report_target(); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.validate_report_target() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    -- Đảm bảo chỉ có một target được set
+    IF (
+        (NEW.target_listing_id IS NOT NULL)::integer +
+        (NEW.target_comment_id IS NOT NULL)::integer +
+        (NEW.target_user_id IS NOT NULL)::integer +
+        (NEW.target_message_id IS NOT NULL)::integer
+    ) != 1 THEN
+        RAISE EXCEPTION 'Exactly one target must be specified for report';
+    END IF;
+    
+    RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION public.validate_report_target() OWNER TO postgres;
+
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
+
+--
+-- TOC entry 229 (class 1259 OID 16721)
+-- Name: comments; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.comments (
+    comment_id integer NOT NULL,
+    listing_id integer NOT NULL,
+    user_id integer NOT NULL,
+    content text NOT NULL,
+    rating integer,
+    "timestamp" timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    status character varying(20) DEFAULT 'pending'::character varying,
+    parent_comment_id integer,
+    CONSTRAINT comments_rating_check CHECK (((rating >= 1) AND (rating <= 5))),
+    CONSTRAINT comments_status_check CHECK (((status)::text = ANY ((ARRAY['approved'::character varying, 'pending'::character varying, 'rejected'::character varying])::text[])))
+);
+
+
+ALTER TABLE public.comments OWNER TO postgres;
+
+--
+-- TOC entry 5243 (class 0 OID 0)
+-- Dependencies: 229
+-- Name: TABLE comments; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.comments IS 'Lưu bình luận và đánh giá phòng trọ';
+
+
+--
+-- TOC entry 228 (class 1259 OID 16720)
+-- Name: comments_comment_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.comments_comment_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.comments_comment_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 5244 (class 0 OID 0)
+-- Dependencies: 228
+-- Name: comments_comment_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.comments_comment_id_seq OWNED BY public.comments.comment_id;
+
+
+--
+-- TOC entry 235 (class 1259 OID 16825)
+-- Name: favorites; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.favorites (
+    favorite_id integer NOT NULL,
+    user_id integer NOT NULL,
+    listing_id integer NOT NULL,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE public.favorites OWNER TO postgres;
+
+--
+-- TOC entry 5245 (class 0 OID 0)
+-- Dependencies: 235
+-- Name: TABLE favorites; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.favorites IS 'Lưu danh sách yêu thích của người dùng';
+
+
+--
+-- TOC entry 234 (class 1259 OID 16824)
+-- Name: favorites_favorite_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.favorites_favorite_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.favorites_favorite_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 5246 (class 0 OID 0)
+-- Dependencies: 234
+-- Name: favorites_favorite_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.favorites_favorite_id_seq OWNED BY public.favorites.favorite_id;
+
+
+--
+-- TOC entry 225 (class 1259 OID 16670)
+-- Name: listing_images; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.listing_images (
+    image_id integer NOT NULL,
+    listing_id integer NOT NULL,
+    image_url text NOT NULL,
+    description text,
+    order_index integer DEFAULT 0,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE public.listing_images OWNER TO postgres;
+
+--
+-- TOC entry 5247 (class 0 OID 0)
+-- Dependencies: 225
+-- Name: TABLE listing_images; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.listing_images IS 'Lưu hình ảnh của tin đăng';
+
+
+--
+-- TOC entry 224 (class 1259 OID 16669)
+-- Name: listing_images_image_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.listing_images_image_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.listing_images_image_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 5248 (class 0 OID 0)
+-- Dependencies: 224
+-- Name: listing_images_image_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.listing_images_image_id_seq OWNED BY public.listing_images.image_id;
+
+
+--
+-- TOC entry 241 (class 1259 OID 17150)
+-- Name: listing_videos; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.listing_videos (
+    video_id integer NOT NULL,
+    listing_id integer NOT NULL,
+    video_url text NOT NULL,
+    thumbnail_url text,
+    description text,
+    duration_seconds integer,
+    order_index integer DEFAULT 0,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT listing_videos_duration_seconds_check CHECK ((duration_seconds >= 0))
+);
+
+
+ALTER TABLE public.listing_videos OWNER TO postgres;
+
+--
+-- TOC entry 5249 (class 0 OID 0)
+-- Dependencies: 241
+-- Name: TABLE listing_videos; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.listing_videos IS 'Lưu video của tin đăng phòng trọ';
+
+
+--
+-- TOC entry 240 (class 1259 OID 17149)
+-- Name: listing_videos_video_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.listing_videos_video_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.listing_videos_video_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 5250 (class 0 OID 0)
+-- Dependencies: 240
+-- Name: listing_videos_video_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.listing_videos_video_id_seq OWNED BY public.listing_videos.video_id;
+
+
+--
+-- TOC entry 223 (class 1259 OID 16645)
+-- Name: listings; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.listings (
+    listing_id integer NOT NULL,
+    landlord_id integer NOT NULL,
+    title character varying(255) NOT NULL,
+    description text,
+    price numeric(12,2) NOT NULL,
+    area numeric(6,2),
+    address text NOT NULL,
+    ward character varying(100),
+    district character varying(100),
+    city character varying(100),
+    latitude numeric(10,8),
+    longitude numeric(11,8),
+    status character varying(20) DEFAULT 'pending'::character varying,
+    created_date timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_date timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    expiry_date timestamp without time zone,
+    CONSTRAINT listings_area_check CHECK ((area > (0)::numeric)),
+    CONSTRAINT listings_price_check CHECK ((price >= (0)::numeric)),
+    CONSTRAINT listings_status_check CHECK (((status)::text = ANY ((ARRAY['active'::character varying, 'inactive'::character varying, 'pending'::character varying, 'rejected'::character varying, 'expired'::character varying])::text[])))
+);
+
+
+ALTER TABLE public.listings OWNER TO postgres;
+
+--
+-- TOC entry 5251 (class 0 OID 0)
+-- Dependencies: 223
+-- Name: TABLE listings; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.listings IS 'Lưu thông tin tin đăng phòng trọ';
+
+
+--
+-- TOC entry 222 (class 1259 OID 16644)
+-- Name: listings_listing_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.listings_listing_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.listings_listing_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 5252 (class 0 OID 0)
+-- Dependencies: 222
+-- Name: listings_listing_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.listings_listing_id_seq OWNED BY public.listings.listing_id;
+
+
+--
+-- TOC entry 227 (class 1259 OID 16689)
+-- Name: messages; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.messages (
+    message_id integer NOT NULL,
+    sender_id integer NOT NULL,
+    receiver_id integer NOT NULL,
+    listing_id integer,
+    content text NOT NULL,
+    message_type character varying(20) DEFAULT 'text'::character varying,
+    "timestamp" timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    is_read boolean DEFAULT false,
+    read_at timestamp without time zone,
+    CONSTRAINT messages_message_type_check CHECK (((message_type)::text = ANY ((ARRAY['text'::character varying, 'image'::character varying, 'file'::character varying])::text[])))
+);
+
+
+ALTER TABLE public.messages OWNER TO postgres;
+
+--
+-- TOC entry 5253 (class 0 OID 0)
+-- Dependencies: 227
+-- Name: TABLE messages; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.messages IS 'Lưu tin nhắn real-time giữa người dùng';
+
+
+--
+-- TOC entry 226 (class 1259 OID 16688)
+-- Name: messages_message_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.messages_message_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.messages_message_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 5254 (class 0 OID 0)
+-- Dependencies: 226
+-- Name: messages_message_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.messages_message_id_seq OWNED BY public.messages.message_id;
+
+
+--
+-- TOC entry 233 (class 1259 OID 16803)
+-- Name: notifications; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.notifications (
+    notification_id integer NOT NULL,
+    user_id integer NOT NULL,
+    title character varying(255) NOT NULL,
+    message text NOT NULL,
+    notification_type character varying(50) DEFAULT 'info'::character varying,
+    related_entity_type character varying(20),
+    related_entity_id integer,
+    is_read boolean DEFAULT false,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    read_at timestamp without time zone,
+    CONSTRAINT notifications_notification_type_check CHECK (((notification_type)::text = ANY ((ARRAY['info'::character varying, 'warning'::character varying, 'success'::character varying, 'error'::character varying, 'message'::character varying, 'comment'::character varying, 'listing'::character varying])::text[])))
+);
+
+
+ALTER TABLE public.notifications OWNER TO postgres;
+
+--
+-- TOC entry 5255 (class 0 OID 0)
+-- Dependencies: 233
+-- Name: TABLE notifications; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.notifications IS 'Lưu thông báo hệ thống';
+
+
+--
+-- TOC entry 232 (class 1259 OID 16802)
+-- Name: notifications_notification_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.notifications_notification_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.notifications_notification_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 5256 (class 0 OID 0)
+-- Dependencies: 232
+-- Name: notifications_notification_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.notifications_notification_id_seq OWNED BY public.notifications.notification_id;
+
+
+--
+-- TOC entry 231 (class 1259 OID 16753)
+-- Name: reports; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.reports (
+    report_id integer NOT NULL,
+    reporter_id integer NOT NULL,
+    report_type character varying(20) NOT NULL,
+    target_listing_id integer,
+    target_comment_id integer,
+    target_user_id integer,
+    target_message_id integer,
+    reason text NOT NULL,
+    description text,
+    evidence jsonb,
+    status character varying(20) DEFAULT 'pending'::character varying,
+    priority character varying(10) DEFAULT 'medium'::character varying,
+    admin_notes jsonb,
+    resolved_by integer,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    resolved_at timestamp without time zone,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT reports_priority_check CHECK (((priority)::text = ANY ((ARRAY['low'::character varying, 'medium'::character varying, 'high'::character varying, 'urgent'::character varying])::text[]))),
+    CONSTRAINT reports_report_type_check CHECK (((report_type)::text = ANY ((ARRAY['listing'::character varying, 'comment'::character varying, 'user'::character varying, 'message'::character varying])::text[]))),
+    CONSTRAINT reports_status_check CHECK (((status)::text = ANY ((ARRAY['pending'::character varying, 'investigating'::character varying, 'resolved'::character varying, 'rejected'::character varying])::text[])))
+);
+
+
+ALTER TABLE public.reports OWNER TO postgres;
+
+--
+-- TOC entry 5257 (class 0 OID 0)
+-- Dependencies: 231
+-- Name: TABLE reports; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.reports IS 'Lưu báo cáo vi phạm từ người dùng';
+
+
+--
+-- TOC entry 230 (class 1259 OID 16752)
+-- Name: reports_report_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.reports_report_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.reports_report_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 5258 (class 0 OID 0)
+-- Dependencies: 230
+-- Name: reports_report_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.reports_report_id_seq OWNED BY public.reports.report_id;
+
+
+--
+-- TOC entry 239 (class 1259 OID 16868)
+-- Name: system_settings; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.system_settings (
+    setting_id integer NOT NULL,
+    setting_key character varying(100) NOT NULL,
+    setting_value jsonb NOT NULL,
+    description text,
+    updated_by integer,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE public.system_settings OWNER TO postgres;
+
+--
+-- TOC entry 5259 (class 0 OID 0)
+-- Dependencies: 239
+-- Name: TABLE system_settings; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.system_settings IS 'Lưu cấu hình hệ thống';
+
+
+--
+-- TOC entry 238 (class 1259 OID 16867)
+-- Name: system_settings_setting_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.system_settings_setting_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.system_settings_setting_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 5260 (class 0 OID 0)
+-- Dependencies: 238
+-- Name: system_settings_setting_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.system_settings_setting_id_seq OWNED BY public.system_settings.setting_id;
+
+
+--
+-- TOC entry 237 (class 1259 OID 16848)
+-- Name: user_sessions; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.user_sessions (
+    session_id integer NOT NULL,
+    user_id integer NOT NULL,
+    token text NOT NULL,
+    device_info jsonb,
+    ip_address inet,
+    expires_at timestamp without time zone NOT NULL,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    last_activity timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE public.user_sessions OWNER TO postgres;
+
+--
+-- TOC entry 5261 (class 0 OID 0)
+-- Dependencies: 237
+-- Name: TABLE user_sessions; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.user_sessions IS 'Lưu thông tin phiên đăng nhập';
+
+
+--
+-- TOC entry 236 (class 1259 OID 16847)
+-- Name: user_sessions_session_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.user_sessions_session_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.user_sessions_session_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 5262 (class 0 OID 0)
+-- Dependencies: 236
+-- Name: user_sessions_session_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.user_sessions_session_id_seq OWNED BY public.user_sessions.session_id;
+
+
+--
+-- TOC entry 221 (class 1259 OID 16622)
+-- Name: users; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.users (
+    user_id integer NOT NULL,
+    email character varying(255) NOT NULL,
+    phone character varying(20),
+    full_name character varying(100) NOT NULL,
+    password_hash character varying(255) NOT NULL,
+    role character varying(20) DEFAULT 'tenant'::character varying NOT NULL,
+    registration_date timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    status character varying(20) DEFAULT 'active'::character varying,
+    avatar_url text,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT users_role_check CHECK (((role)::text = ANY ((ARRAY['tenant'::character varying, 'landlord'::character varying, 'admin'::character varying])::text[]))),
+    CONSTRAINT users_status_check CHECK (((status)::text = ANY ((ARRAY['active'::character varying, 'inactive'::character varying, 'banned'::character varying])::text[])))
+);
+
+
+ALTER TABLE public.users OWNER TO postgres;
+
+--
+-- TOC entry 5263 (class 0 OID 0)
+-- Dependencies: 221
+-- Name: TABLE users; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.users IS 'Lưu thông tin người dùng hệ thống';
+
+
+--
+-- TOC entry 220 (class 1259 OID 16621)
+-- Name: users_user_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.users_user_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.users_user_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 5264 (class 0 OID 0)
+-- Dependencies: 220
+-- Name: users_user_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.users_user_id_seq OWNED BY public.users.user_id;
+
+
+--
+-- TOC entry 4936 (class 2604 OID 16724)
+-- Name: comments comment_id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.comments ALTER COLUMN comment_id SET DEFAULT nextval('public.comments_comment_id_seq'::regclass);
+
+
+--
+-- TOC entry 4948 (class 2604 OID 16828)
+-- Name: favorites favorite_id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.favorites ALTER COLUMN favorite_id SET DEFAULT nextval('public.favorites_favorite_id_seq'::regclass);
+
+
+--
+-- TOC entry 4929 (class 2604 OID 16673)
+-- Name: listing_images image_id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.listing_images ALTER COLUMN image_id SET DEFAULT nextval('public.listing_images_image_id_seq'::regclass);
+
+
+--
+-- TOC entry 4956 (class 2604 OID 17153)
+-- Name: listing_videos video_id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.listing_videos ALTER COLUMN video_id SET DEFAULT nextval('public.listing_videos_video_id_seq'::regclass);
+
+
+--
+-- TOC entry 4925 (class 2604 OID 16648)
+-- Name: listings listing_id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.listings ALTER COLUMN listing_id SET DEFAULT nextval('public.listings_listing_id_seq'::regclass);
+
+
+--
+-- TOC entry 4932 (class 2604 OID 16692)
+-- Name: messages message_id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.messages ALTER COLUMN message_id SET DEFAULT nextval('public.messages_message_id_seq'::regclass);
+
+
+--
+-- TOC entry 4944 (class 2604 OID 16806)
+-- Name: notifications notification_id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.notifications ALTER COLUMN notification_id SET DEFAULT nextval('public.notifications_notification_id_seq'::regclass);
+
+
+--
+-- TOC entry 4939 (class 2604 OID 16756)
+-- Name: reports report_id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.reports ALTER COLUMN report_id SET DEFAULT nextval('public.reports_report_id_seq'::regclass);
+
+
+--
+-- TOC entry 4953 (class 2604 OID 16871)
+-- Name: system_settings setting_id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.system_settings ALTER COLUMN setting_id SET DEFAULT nextval('public.system_settings_setting_id_seq'::regclass);
+
+
+--
+-- TOC entry 4950 (class 2604 OID 16851)
+-- Name: user_sessions session_id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.user_sessions ALTER COLUMN session_id SET DEFAULT nextval('public.user_sessions_session_id_seq'::regclass);
+
+
+--
+-- TOC entry 4919 (class 2604 OID 16625)
+-- Name: users user_id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.users ALTER COLUMN user_id SET DEFAULT nextval('public.users_user_id_seq'::regclass);
+
+
+--
+-- TOC entry 5224 (class 0 OID 16721)
+-- Dependencies: 229
+-- Data for Name: comments; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.comments (comment_id, listing_id, user_id, content, rating, "timestamp", status, parent_comment_id) FROM stdin;
+1	1	4	Phòng này còn không ạ? Em muốn qua xem cuối tuần này.	5	2025-11-10 16:54:47.577154	approved	\N
+2	1	2	Còn em nhé. Em liên hệ SĐT 0987654321 của anh để hẹn giờ nhé.	\N	2025-11-10 16:54:47.577154	approved	1
+3	3	5	Giá có fix không ạ? Em là sinh viên.	4	2025-11-10 16:54:47.577154	approved	\N
+\.
+
+
+--
+-- TOC entry 5230 (class 0 OID 16825)
+-- Dependencies: 235
+-- Data for Name: favorites; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.favorites (favorite_id, user_id, listing_id, created_at) FROM stdin;
+1	4	1	2025-11-10 16:54:47.577154
+2	4	3	2025-11-10 16:54:47.577154
+3	5	1	2025-11-10 16:54:47.577154
+\.
+
+
+--
+-- TOC entry 5220 (class 0 OID 16670)
+-- Dependencies: 225
+-- Data for Name: listing_images; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.listing_images (image_id, listing_id, image_url, description, order_index, created_at) FROM stdin;
+2	1	https://img.trofinder.com/cg_1_wc.jpg	Ảnh nhà vệ sinh	1	2025-11-10 16:54:41.484546
+3	1	https://img.trofinder.com/cg_1_bancong.jpg	Ảnh ban công	2	2025-11-10 16:54:41.484546
+5	2	https://img.trofinder.com/tx_1_ngu.jpg	Phòng ngủ riêng	1	2025-11-10 16:54:41.484546
+7	3	https://img.trofinder.com/bd_1_gacxep.jpg	Ảnh gác xép	1	2025-11-10 16:54:41.484546
+1	1	https://res.cloudinary.com/dcapucva9/image/upload/v1762929463/room1_mnyf30.jpg	Ảnh phòng ngủ chính	0	2025-11-10 16:54:41.484546
+4	2	https://res.cloudinary.com/dcapucva9/image/upload/v1762929463/room3_ldvzrf.jpg	Phòng khách	0	2025-11-10 16:54:41.484546
+6	3	https://res.cloudinary.com/dcapucva9/image/upload/v1762929462/room2_x777ag.jpg	Ảnh tổng quan phòng	0	2025-11-10 16:54:41.484546
+8	4	https://https://res.cloudinary.com/dcapucva9/image/upload/v1763007845/anh-t46-47_nzlgir.png	Ảnh phòng	0	2025-11-13 11:25:05.309421
+9	5	https://res.cloudinary.com/dcapucva9/image/upload/v1763184331/images_tzmurl.jpg	phòng chính	0	2025-11-15 12:31:29.168949
+10	5	https://img.trofinder.com/l1_2.jpg	Nhà vệ sinh	1	2025-11-15 12:31:29.168949
+11	6	https://res.cloudinary.com/dcapucva9/image/upload/v1763184381/phong-tro-cho-thue-alonhatro-1-_ahsj2u.jpg	phòng chính	0	2025-11-15 12:31:29.168949
+12	6	https://img.trofinder.com/l2_2.jpg	Bếp full đồ	1	2025-11-15 12:31:29.168949
+13	6	https://img.trofinder.com/l2_3.jpg	Ban công thoáng	2	2025-11-15 12:31:29.168949
+14	7	https://res.cloudinary.com/dcapucva9/image/upload/v1763184406/thue-phong-tro-12-trieu-thang-9x-chia-se-cach-trang-tri-phong-tro-cuc-xinh-chi-voi-6-trieu-dong-z5239971433024_b0a12fdf9f18e6cad36cf5835b97721e-1710392353-833-width780height1040_ysaclo.jpg	phòng chính	0	2025-11-15 12:31:29.168949
+15	7	https://img.trofinder.com/l3_2.jpg	Cửa sổ ánh sáng	1	2025-11-15 12:31:29.168949
+16	8	https://res.cloudinary.com/dcapucva9/image/upload/v1763184418/Frame_219_d7ajgg.jpg	phòng chính	0	2025-11-15 12:31:29.168949
+17	8	https://img.trofinder.com/l4_2.jpg	Khu vực bếp	1	2025-11-15 12:31:29.168949
+18	8	https://img.trofinder.com/l4_3.jpg	Nhà vệ sinh sạch	2	2025-11-15 12:31:29.168949
+19	9	https://res.cloudinary.com/dcapucva9/image/upload/v1763184423/oROLQqY_rnpzsy.jpg	phòng chính	0	2025-11-15 12:31:29.168949
+20	9	https://img.trofinder.com/l5_2.jpg	Đồ đạc cơ bản	1	2025-11-15 12:31:29.168949
+21	10	https://res.cloudinary.com/dcapucva9/image/upload/v1763184437/cong-nhan-bd1-edited-1690446087906jpeg-1723111604568_ewowg4.webp	phòng chính	0	2025-11-15 12:31:29.168949
+22	10	https://img.trofinder.com/l6_2.jpg	Giường ngủ	1	2025-11-15 12:31:29.168949
+23	10	https://img.trofinder.com/l6_3.jpg	Phòng bếp	2	2025-11-15 12:31:29.168949
+24	11	https://img.trofinder.com/l7_1.jpg	Phòng nhỏ gọn	0	2025-11-15 12:31:29.168949
+25	11	https://img.trofinder.com/l7_2.jpg	Khu sinh hoạt chung	1	2025-11-15 12:31:29.168949
+26	12	https://res.cloudinary.com/dcapucva9/image/upload/v1763184448/nha-tro-thien-huong-gan-cho-trinh-1-46_enppc1.jpg	phòng chính	0	2025-11-15 12:31:29.168949
+27	12	https://img.trofinder.com/l8_2.jpg	WC riêng	1	2025-11-15 12:31:29.168949
+28	13	https://res.cloudinary.com/dcapucva9/image/upload/v1763184438/thue-nha-tro_t9aatg.jpg	phòng chính	0	2025-11-15 12:31:29.168949
+29	13	https://img.trofinder.com/l9_2.jpg	Gác xép rộng	1	2025-11-15 12:31:29.168949
+30	14	https://img.trofinder.com/l10_1.jpg	Căn studio cao cấp	0	2025-11-15 12:31:29.168949
+31	14	https://img.trofinder.com/l10_2.jpg	Nội thất đầy đủ	1	2025-11-15 12:31:29.168949
+32	14	https://img.trofinder.com/l10_3.jpg	Ban công view đẹp	2	2025-11-15 12:31:29.168949
+\.
+
+
+--
+-- TOC entry 5236 (class 0 OID 17150)
+-- Dependencies: 241
+-- Data for Name: listing_videos; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.listing_videos (video_id, listing_id, video_url, thumbnail_url, description, duration_seconds, order_index, created_at) FROM stdin;
+2	1	https://res.cloudinary.com/dcapucva9/video/upload/v1763192620/7226707595454_qjzawc.mp4	https://res.cloudinary.com/dcapucva9/image/upload/v1763193948/meme-hai-29_epkzgk.jpg	Video giới thiệu phòng 1	120	0	2025-11-15 15:13:16.590518
+3	2	https://res.cloudinary.com/dcapucva9/video/upload/v1763194257/r2_oqd8ej.mp4	https://res.cloudinary.com/dcapucva9/image/upload/v1763193948/meme-hai-29_epkzgk.jpg	Video giới thiệu phòng 2	120	0	2025-11-15 15:13:16.590518
+4	3	https://res.cloudinary.com/dcapucva9/video/upload/v1763194277/r3_e3peyi.mp4	https://res.cloudinary.com/dcapucva9/image/upload/v1763193948/meme-hai-29_epkzgk.jpg.jpg	Video giới thiệu phòng 3	120	0	2025-11-15 15:13:16.590518
+\.
+
+
+--
+-- TOC entry 5218 (class 0 OID 16645)
+-- Dependencies: 223
+-- Data for Name: listings; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.listings (listing_id, landlord_id, title, description, price, area, address, ward, district, city, latitude, longitude, status, created_date, updated_date, expiry_date) FROM stdin;
+1	2	Phòng trọ full đồ, mới xây tại Cầu Giấy, gần ĐHQG	Phòng 25m², đầy đủ tiện nghi: điều hòa, nóng lạnh, giường, tủ, bàn làm việc. An ninh tốt, camera, khóa vân tay. Gần ĐH Quốc Gia, ĐH Sư Phạm. Điện 3.5k/số, nước 100k/người	3800000.00	25.00	Số 15, ngõ 181 đường Xuân Thủy	Dịch Vọng Hậu	Cầu Giấy	Hà Nội	21.03456700	105.78321000	active	2025-11-10 16:54:34.320873	2025-11-10 16:54:34.320873	2025-12-10 16:54:34.320873
+2	2	Cho thuê chung cư mini 1N1K tại Thanh Xuân	Căn hộ 1 phòng ngủ, 1 phòng khách, diện tích 35m². Nội thất cơ bản, ban công phơi đồ. Tòa nhà thang máy, hầm để xe. Gần Ngã Tư Sở.	4500000.00	35.00	Số 88, đường Nguyễn Trãi	Thượng Đình	Thanh Xuân	Hà Nội	20.99512300	105.80845600	active	2025-11-10 16:54:34.320873	2025-11-10 16:54:34.320873	2025-12-05 16:54:34.320873
+3	3	Phòng trọ khép kín, yên tĩnh khu Ba Đình	Phòng 20m², khép kín, có gác xép. Khu dân trí cao, yên tĩnh. Gần Lăng Bác, chợ Đội Cấn. Phù hợp người đi làm hoặc sinh viên.	2500000.00	20.00	Ngõ 100, đường Đội Cấn	Đội Cấn	Ba Đình	Hà Nội	21.03589000	105.82345600	active	2025-11-10 16:54:34.320873	2025-11-10 16:54:34.320873	2025-11-30 16:54:34.320873
+4	3	Căn hộ dịch vụ cao cấp Mỗ Lao, Hà Đông	Studio 30m², full nội thất. Dọn phòng 2 lần/tuần. Gần hồ Mỗ Lao, Big C Hà Đông. Giá 5.000.000 VNĐ (bao gồm phí dịch vụ).	5000000.00	30.00	Đường Mỗ Lao	Mộ Lao	Hà Đông	Hà Nội	20.98234500	105.78765400	pending	2025-11-10 16:54:34.320873	2025-11-10 16:54:34.320873	2025-12-10 16:54:34.320873
+5	2	Phòng trọ sinh viên giá rẻ gần ĐH Công Nghiệp	Phòng trọ 18m2, sạch sẽ, có gác xép, riêng chủ. Gần trường ĐH Công Nghiệp Hà Nội, tiện đường Cầu Diễn.	1800000.00	18.00	Ngõ 64, đường Cầu Diễn	Phúc Diễn	Bắc Từ Liêm	Hà Nội	21.04621300	105.74411200	active	2025-11-15 12:23:41.33505	2025-11-15 12:23:41.33505	2025-12-05 12:23:41.33505
+6	2	Căn hộ mini full nội thất Mỹ Đình	Phòng 28m2 có ban công, full nội thất: giường, tủ, bếp từ, máy giặt chung. Gần SVĐ Mỹ Đình.	5200000.00	28.00	Số 25, ngõ 322 Mỹ Đình	Mỹ Đình 1	Nam Từ Liêm	Hà Nội	21.02891200	105.77431100	active	2025-11-15 12:23:41.33505	2025-11-15 12:23:41.33505	2025-12-15 12:23:41.33505
+7	3	Phòng trọ rộng rãi gần Times City	Phòng mới xây, 30m2, vệ sinh khép kín, có cửa sổ thoáng, gần cầu Vĩnh Tuy và Times City.	3500000.00	30.00	Ngõ 622 Minh Khai	Minh Khai	Hai Bà Trưng	Hà Nội	21.00452200	105.86720100	active	2025-11-15 12:23:41.33505	2025-11-15 12:23:41.33505	2025-12-10 12:23:41.33505
+8	3	Chung cư mini Trần Duy Hưng có thang máy	Studio 35m2, thang máy, ban công thoáng. Gần Big C Thăng Long và phố Trần Duy Hưng.	5800000.00	35.00	Ngõ 43 Trần Duy Hưng	Trung Hoà	Cầu Giấy	Hà Nội	21.01152000	105.79823400	active	2025-11-15 12:23:41.33505	2025-11-15 12:23:41.33505	2025-12-15 12:23:41.33505
+9	2	Phòng trọ khép kín Kim Mã – Ba Đình	Phòng 22m2, WC riêng, máy lạnh, cửa sổ lớn. Gần VinMart, Lotte Center.	3200000.00	22.00	Ngõ 199 Kim Mã	Kim Mã	Ba Đình	Hà Nội	21.03057600	105.81721000	active	2025-11-15 12:23:41.33505	2025-11-15 12:23:41.33505	2025-12-05 12:23:41.33505
+10	2	Căn hộ studio full đồ phố Bạch Mai	Studio 28m2 đầy đủ tiện nghi: giường, bếp, điều hòa, máy giặt. Đi bộ 5 phút tới ĐH Bách Khoa.	4500000.00	28.00	Ngõ 53 Bạch Mai	Bạch Mai	Hai Bà Trưng	Hà Nội	21.00582300	105.85037500	active	2025-11-15 12:23:41.33505	2025-11-15 12:23:41.33505	2025-12-05 12:23:41.33505
+11	3	Phòng trọ dạng homestay quận Hoàng Mai	Phòng nhỏ 14m2, giá rẻ dành cho sinh viên. Có bếp chung, phòng giặt.	1600000.00	14.00	Số 12, ngõ 42 Định Công	Định Công	Hoàng Mai	Hà Nội	20.98233200	105.83126700	active	2025-11-15 12:23:41.33505	2025-11-15 12:23:41.33505	2025-11-30 12:23:41.33505
+12	2	Căn hộ mini Giải Phóng gần BV Bạch Mai	Phòng 25m2, thang máy, máy giặt chung. Gần Đại học Xây Dựng, Kinh tế Quốc dân.	4200000.00	25.00	Ngõ 109 Giải Phóng	Phương Mai	Đống Đa	Hà Nội	21.00143200	105.84031200	active	2025-11-15 12:23:41.33505	2025-11-15 12:23:41.33505	2025-12-10 12:23:41.33505
+13	3	Phòng trọ mới 100% Văn Quán – Hà Đông	Phòng đẹp 20m2 có gác xép, có cửa sổ, gần khu đô thị Văn Quán.	2700000.00	20.00	Ngõ 59 Nguyễn Khuyến	Văn Quán	Hà Đông	Hà Nội	20.97342300	105.78234500	active	2025-11-15 12:23:41.33505	2025-11-15 12:23:41.33505	2025-12-15 12:23:41.33505
+14	3	Studio cao cấp Hồ Tùng Mậu	Căn studio 32m2, nội thất cao cấp, view đẹp. Gần ĐH Thương Mại.	6500000.00	32.00	Ngõ 4 Hồ Tùng Mậu	Mai Dịch	Cầu Giấy	Hà Nội	21.04034100	105.77099200	active	2025-11-15 12:23:41.33505	2025-11-15 12:23:41.33505	2025-12-20 12:23:41.33505
+\.
+
+
+--
+-- TOC entry 5222 (class 0 OID 16689)
+-- Dependencies: 227
+-- Data for Name: messages; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.messages (message_id, sender_id, receiver_id, listing_id, content, message_type, "timestamp", is_read, read_at) FROM stdin;
+1	5	3	3	Chào chị, em thấy tin phòng ở Đội Cấn. Phòng này 2.5tr đã bao gồm gì ạ?	text	2025-11-10 16:54:47.577154	f	\N
+2	3	5	3	Chào em, giá đó là tiền phòng thôi em nhé. Điện nước giá dân, có công tơ riêng.	text	2025-11-10 16:54:47.577154	f	\N
+3	5	3	3	Dạ vâng, cuối tuần em qua xem được không chị?	text	2025-11-10 16:54:47.577154	f	\N
+\.
+
+
+--
+-- TOC entry 5228 (class 0 OID 16803)
+-- Dependencies: 233
+-- Data for Name: notifications; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.notifications (notification_id, user_id, title, message, notification_type, related_entity_type, related_entity_id, is_read, created_at, read_at) FROM stdin;
+1	2	Bạn có bình luận mới!	Nguyễn Văn Hùng đã bình luận về tin đăng "Phòng trọ full đồ... Cầu Giấy" của bạn.	comment	comment	1	f	2025-11-10 16:54:57.039578	\N
+2	3	Bạn có tin nhắn mới	Phạm Thu Trang đã nhắn tin cho bạn về tin đăng "Phòng trọ khép kín... Ba Đình".	message	message	1	f	2025-11-10 16:54:57.039578	\N
+3	1	Báo cáo mới đang chờ xử lý	Một tin đăng đã bị báo cáo với lý do "Tin không có thật".	warning	report	1	f	2025-11-10 16:54:57.039578	\N
+\.
+
+
+--
+-- TOC entry 5226 (class 0 OID 16753)
+-- Dependencies: 231
+-- Data for Name: reports; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.reports (report_id, reporter_id, report_type, target_listing_id, target_comment_id, target_user_id, target_message_id, reason, description, evidence, status, priority, admin_notes, resolved_by, created_at, resolved_at, updated_at) FROM stdin;
+1	4	listing	2	\N	\N	\N	Tin không có thật	Em gọi SĐT thì chủ nhà báo đã cho thuê lâu rồi, nhưng tin vẫn đăng. Nghi ngờ tin rác.	\N	pending	medium	\N	\N	2025-11-10 16:54:57.039578	\N	2025-11-10 16:54:57.039578
+\.
+
+
+--
+-- TOC entry 5234 (class 0 OID 16868)
+-- Dependencies: 239
+-- Data for Name: system_settings; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.system_settings (setting_id, setting_key, setting_value, description, updated_by, created_at, updated_at) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5232 (class 0 OID 16848)
+-- Dependencies: 237
+-- Data for Name: user_sessions; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.user_sessions (session_id, user_id, token, device_info, ip_address, expires_at, created_at, last_activity) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5216 (class 0 OID 16622)
+-- Dependencies: 221
+-- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.users (user_id, email, phone, full_name, password_hash, role, registration_date, status, avatar_url, created_at, updated_at) FROM stdin;
+1	admin@trofinder.com	0123456789	System Administrator	hash_admin123	admin	2025-11-10 16:54:29.35075	active	https://res.cloudinary.com/dcapucva9/image/upload/v1763194573/883e5e3e-44c5-4015-853e-f6743d73f1e8.png	2025-11-10 16:54:29.35075	2025-11-15 15:19:28.585309
+2	an.le@gmail.com	0987654321	Lê Văn An	hash_landlord123	landlord	2025-11-10 16:54:29.35075	active	https://res.cloudinary.com/dcapucva9/image/upload/v1763194573/883e5e3e-44c5-4015-853e-f6743d73f1e8.png	2025-11-10 16:54:29.35075	2025-11-15 15:19:28.585309
+3	bich.tran@gmail.com	0912345678	Trần Thị Bích	hash_landlord123	landlord	2025-11-10 16:54:29.35075	active	https://res.cloudinary.com/dcapucva9/image/upload/v1763194573/883e5e3e-44c5-4015-853e-f6743d73f1e8.png	2025-11-10 16:54:29.35075	2025-11-15 15:19:28.585309
+4	hung.nguyen@gmail.com	0905123456	Nguyễn Văn Hùng	hash_tenant123	tenant	2025-11-10 16:54:29.35075	active	https://res.cloudinary.com/dcapucva9/image/upload/v1763194573/883e5e3e-44c5-4015-853e-f6743d73f1e8.png	2025-11-10 16:54:29.35075	2025-11-15 15:19:28.585309
+5	trang.pham@gmail.com	0905654321	Phạm Thu Trang	hash_tenant123	tenant	2025-11-10 16:54:29.35075	active	https://res.cloudinary.com/dcapucva9/image/upload/v1763194573/883e5e3e-44c5-4015-853e-f6743d73f1e8.png	2025-11-10 16:54:29.35075	2025-11-15 15:19:28.585309
+\.
+
+
+--
+-- TOC entry 5265 (class 0 OID 0)
+-- Dependencies: 228
+-- Name: comments_comment_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.comments_comment_id_seq', 3, true);
+
+
+--
+-- TOC entry 5266 (class 0 OID 0)
+-- Dependencies: 234
+-- Name: favorites_favorite_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.favorites_favorite_id_seq', 3, true);
+
+
+--
+-- TOC entry 5267 (class 0 OID 0)
+-- Dependencies: 224
+-- Name: listing_images_image_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.listing_images_image_id_seq', 32, true);
+
+
+--
+-- TOC entry 5268 (class 0 OID 0)
+-- Dependencies: 240
+-- Name: listing_videos_video_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.listing_videos_video_id_seq', 4, true);
+
+
+--
+-- TOC entry 5269 (class 0 OID 0)
+-- Dependencies: 222
+-- Name: listings_listing_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.listings_listing_id_seq', 14, true);
+
+
+--
+-- TOC entry 5270 (class 0 OID 0)
+-- Dependencies: 226
+-- Name: messages_message_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.messages_message_id_seq', 3, true);
+
+
+--
+-- TOC entry 5271 (class 0 OID 0)
+-- Dependencies: 232
+-- Name: notifications_notification_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.notifications_notification_id_seq', 3, true);
+
+
+--
+-- TOC entry 5272 (class 0 OID 0)
+-- Dependencies: 230
+-- Name: reports_report_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.reports_report_id_seq', 1, true);
+
+
+--
+-- TOC entry 5273 (class 0 OID 0)
+-- Dependencies: 238
+-- Name: system_settings_setting_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.system_settings_setting_id_seq', 1, false);
+
+
+--
+-- TOC entry 5274 (class 0 OID 0)
+-- Dependencies: 236
+-- Name: user_sessions_session_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.user_sessions_session_id_seq', 1, false);
+
+
+--
+-- TOC entry 5275 (class 0 OID 0)
+-- Dependencies: 220
+-- Name: users_user_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.users_user_id_seq', 5, true);
+
+
+--
+-- TOC entry 5002 (class 2606 OID 16736)
+-- Name: comments comments_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.comments
+    ADD CONSTRAINT comments_pkey PRIMARY KEY (comment_id);
+
+
+--
+-- TOC entry 5025 (class 2606 OID 16834)
+-- Name: favorites favorites_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.favorites
+    ADD CONSTRAINT favorites_pkey PRIMARY KEY (favorite_id);
+
+
+--
+-- TOC entry 5027 (class 2606 OID 16836)
+-- Name: favorites favorites_user_id_listing_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.favorites
+    ADD CONSTRAINT favorites_user_id_listing_id_key UNIQUE (user_id, listing_id);
+
+
+--
+-- TOC entry 4992 (class 2606 OID 16682)
+-- Name: listing_images listing_images_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.listing_images
+    ADD CONSTRAINT listing_images_pkey PRIMARY KEY (image_id);
+
+
+--
+-- TOC entry 5042 (class 2606 OID 17163)
+-- Name: listing_videos listing_videos_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.listing_videos
+    ADD CONSTRAINT listing_videos_pkey PRIMARY KEY (video_id);
+
+
+--
+-- TOC entry 4988 (class 2606 OID 16663)
+-- Name: listings listings_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.listings
+    ADD CONSTRAINT listings_pkey PRIMARY KEY (listing_id);
+
+
+--
+-- TOC entry 5000 (class 2606 OID 16704)
+-- Name: messages messages_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.messages
+    ADD CONSTRAINT messages_pkey PRIMARY KEY (message_id);
+
+
+--
+-- TOC entry 5023 (class 2606 OID 16818)
+-- Name: notifications notifications_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.notifications
+    ADD CONSTRAINT notifications_pkey PRIMARY KEY (notification_id);
+
+
+--
+-- TOC entry 5018 (class 2606 OID 16771)
+-- Name: reports reports_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.reports
+    ADD CONSTRAINT reports_pkey PRIMARY KEY (report_id);
+
+
+--
+-- TOC entry 5036 (class 2606 OID 16880)
+-- Name: system_settings system_settings_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.system_settings
+    ADD CONSTRAINT system_settings_pkey PRIMARY KEY (setting_id);
+
+
+--
+-- TOC entry 5038 (class 2606 OID 16882)
+-- Name: system_settings system_settings_setting_key_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.system_settings
+    ADD CONSTRAINT system_settings_setting_key_key UNIQUE (setting_key);
+
+
+--
+-- TOC entry 5034 (class 2606 OID 16861)
+-- Name: user_sessions user_sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.user_sessions
+    ADD CONSTRAINT user_sessions_pkey PRIMARY KEY (session_id);
+
+
+--
+-- TOC entry 4977 (class 2606 OID 16643)
+-- Name: users users_email_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_email_key UNIQUE (email);
+
+
+--
+-- TOC entry 4979 (class 2606 OID 16641)
+-- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_pkey PRIMARY KEY (user_id);
+
+
+--
+-- TOC entry 5003 (class 1259 OID 16907)
+-- Name: idx_comments_listing; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_comments_listing ON public.comments USING btree (listing_id);
+
+
+--
+-- TOC entry 5004 (class 1259 OID 16912)
+-- Name: idx_comments_parent; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_comments_parent ON public.comments USING btree (parent_comment_id);
+
+
+--
+-- TOC entry 5005 (class 1259 OID 16910)
+-- Name: idx_comments_rating; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_comments_rating ON public.comments USING btree (rating);
+
+
+--
+-- TOC entry 5006 (class 1259 OID 16909)
+-- Name: idx_comments_status; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_comments_status ON public.comments USING btree (status);
+
+
+--
+-- TOC entry 5007 (class 1259 OID 16911)
+-- Name: idx_comments_timestamp; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_comments_timestamp ON public.comments USING btree ("timestamp");
+
+
+--
+-- TOC entry 5008 (class 1259 OID 16908)
+-- Name: idx_comments_user; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_comments_user ON public.comments USING btree (user_id);
+
+
+--
+-- TOC entry 5028 (class 1259 OID 16925)
+-- Name: idx_favorites_listing; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_favorites_listing ON public.favorites USING btree (listing_id);
+
+
+--
+-- TOC entry 5029 (class 1259 OID 16924)
+-- Name: idx_favorites_user; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_favorites_user ON public.favorites USING btree (user_id);
+
+
+--
+-- TOC entry 4989 (class 1259 OID 16899)
+-- Name: idx_listing_images_listing; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_listing_images_listing ON public.listing_images USING btree (listing_id);
+
+
+--
+-- TOC entry 4990 (class 1259 OID 16900)
+-- Name: idx_listing_images_order; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_listing_images_order ON public.listing_images USING btree (listing_id, order_index);
+
+
+--
+-- TOC entry 5039 (class 1259 OID 17169)
+-- Name: idx_listing_videos_listing; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_listing_videos_listing ON public.listing_videos USING btree (listing_id);
+
+
+--
+-- TOC entry 5040 (class 1259 OID 17170)
+-- Name: idx_listing_videos_order; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_listing_videos_order ON public.listing_videos USING btree (listing_id, order_index);
+
+
+--
+-- TOC entry 4980 (class 1259 OID 16896)
+-- Name: idx_listings_city_district; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_listings_city_district ON public.listings USING btree (city, district);
+
+
+--
+-- TOC entry 4981 (class 1259 OID 16897)
+-- Name: idx_listings_created_date; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_listings_created_date ON public.listings USING btree (created_date);
+
+
+--
+-- TOC entry 4982 (class 1259 OID 16892)
+-- Name: idx_listings_landlord; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_listings_landlord ON public.listings USING btree (landlord_id);
+
+
+--
+-- TOC entry 4983 (class 1259 OID 16895)
+-- Name: idx_listings_location; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_listings_location ON public.listings USING btree (latitude, longitude);
+
+
+--
+-- TOC entry 4984 (class 1259 OID 16894)
+-- Name: idx_listings_price; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_listings_price ON public.listings USING btree (price);
+
+
+--
+-- TOC entry 4985 (class 1259 OID 16893)
+-- Name: idx_listings_status; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_listings_status ON public.listings USING btree (status);
+
+
+--
+-- TOC entry 4986 (class 1259 OID 16898)
+-- Name: idx_listings_status_created; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_listings_status_created ON public.listings USING btree (status, created_date);
+
+
+--
+-- TOC entry 4993 (class 1259 OID 16903)
+-- Name: idx_messages_conversation; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_messages_conversation ON public.messages USING btree (LEAST(sender_id, receiver_id), GREATEST(sender_id, receiver_id));
+
+
+--
+-- TOC entry 4994 (class 1259 OID 16904)
+-- Name: idx_messages_listing; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_messages_listing ON public.messages USING btree (listing_id);
+
+
+--
+-- TOC entry 4995 (class 1259 OID 16902)
+-- Name: idx_messages_receiver; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_messages_receiver ON public.messages USING btree (receiver_id);
+
+
+--
+-- TOC entry 4996 (class 1259 OID 16901)
+-- Name: idx_messages_sender; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_messages_sender ON public.messages USING btree (sender_id);
+
+
+--
+-- TOC entry 4997 (class 1259 OID 16905)
+-- Name: idx_messages_timestamp; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_messages_timestamp ON public.messages USING btree ("timestamp");
+
+
+--
+-- TOC entry 4998 (class 1259 OID 16906)
+-- Name: idx_messages_unread; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_messages_unread ON public.messages USING btree (receiver_id, is_read) WHERE (is_read = false);
+
+
+--
+-- TOC entry 5019 (class 1259 OID 16923)
+-- Name: idx_notifications_created_at; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_notifications_created_at ON public.notifications USING btree (created_at);
+
+
+--
+-- TOC entry 5020 (class 1259 OID 16922)
+-- Name: idx_notifications_unread; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_notifications_unread ON public.notifications USING btree (user_id, is_read) WHERE (is_read = false);
+
+
+--
+-- TOC entry 5021 (class 1259 OID 16921)
+-- Name: idx_notifications_user; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_notifications_user ON public.notifications USING btree (user_id);
+
+
+--
+-- TOC entry 5009 (class 1259 OID 16917)
+-- Name: idx_reports_created_at; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_reports_created_at ON public.reports USING btree (created_at);
+
+
+--
+-- TOC entry 5010 (class 1259 OID 16916)
+-- Name: idx_reports_priority; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_reports_priority ON public.reports USING btree (priority);
+
+
+--
+-- TOC entry 5011 (class 1259 OID 16913)
+-- Name: idx_reports_reporter; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_reports_reporter ON public.reports USING btree (reporter_id);
+
+
+--
+-- TOC entry 5012 (class 1259 OID 16915)
+-- Name: idx_reports_status; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_reports_status ON public.reports USING btree (status);
+
+
+--
+-- TOC entry 5013 (class 1259 OID 16919)
+-- Name: idx_reports_target_comment; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_reports_target_comment ON public.reports USING btree (target_comment_id) WHERE (target_comment_id IS NOT NULL);
+
+
+--
+-- TOC entry 5014 (class 1259 OID 16918)
+-- Name: idx_reports_target_listing; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_reports_target_listing ON public.reports USING btree (target_listing_id) WHERE (target_listing_id IS NOT NULL);
+
+
+--
+-- TOC entry 5015 (class 1259 OID 16920)
+-- Name: idx_reports_target_user; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_reports_target_user ON public.reports USING btree (target_user_id) WHERE (target_user_id IS NOT NULL);
+
+
+--
+-- TOC entry 5016 (class 1259 OID 16914)
+-- Name: idx_reports_type; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_reports_type ON public.reports USING btree (report_type);
+
+
+--
+-- TOC entry 5030 (class 1259 OID 16928)
+-- Name: idx_sessions_expires; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_sessions_expires ON public.user_sessions USING btree (expires_at);
+
+
+--
+-- TOC entry 5031 (class 1259 OID 16927)
+-- Name: idx_sessions_token; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_sessions_token ON public.user_sessions USING btree (token);
+
+
+--
+-- TOC entry 5032 (class 1259 OID 16926)
+-- Name: idx_sessions_user; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_sessions_user ON public.user_sessions USING btree (user_id);
+
+
+--
+-- TOC entry 4972 (class 1259 OID 16891)
+-- Name: idx_users_created_at; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_users_created_at ON public.users USING btree (created_at);
+
+
+--
+-- TOC entry 4973 (class 1259 OID 16888)
+-- Name: idx_users_email; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_users_email ON public.users USING btree (email);
+
+
+--
+-- TOC entry 4974 (class 1259 OID 16889)
+-- Name: idx_users_role; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_users_role ON public.users USING btree (role);
+
+
+--
+-- TOC entry 4975 (class 1259 OID 16890)
+-- Name: idx_users_status; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_users_status ON public.users USING btree (status);
+
+
+--
+-- TOC entry 5064 (class 2620 OID 16931)
+-- Name: listings update_listings_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER update_listings_updated_at BEFORE UPDATE ON public.listings FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
+-- TOC entry 5065 (class 2620 OID 16932)
+-- Name: reports update_reports_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER update_reports_updated_at BEFORE UPDATE ON public.reports FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
+-- TOC entry 5067 (class 2620 OID 16933)
+-- Name: system_settings update_settings_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER update_settings_updated_at BEFORE UPDATE ON public.system_settings FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
+-- TOC entry 5063 (class 2620 OID 16930)
+-- Name: users update_users_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON public.users FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
+-- TOC entry 5066 (class 2620 OID 16935)
+-- Name: reports validate_report_target_trigger; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER validate_report_target_trigger BEFORE INSERT OR UPDATE ON public.reports FOR EACH ROW EXECUTE FUNCTION public.validate_report_target();
+
+
+--
+-- TOC entry 5048 (class 2606 OID 16737)
+-- Name: comments comments_listing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.comments
+    ADD CONSTRAINT comments_listing_id_fkey FOREIGN KEY (listing_id) REFERENCES public.listings(listing_id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5049 (class 2606 OID 16747)
+-- Name: comments comments_parent_comment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.comments
+    ADD CONSTRAINT comments_parent_comment_id_fkey FOREIGN KEY (parent_comment_id) REFERENCES public.comments(comment_id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5050 (class 2606 OID 16742)
+-- Name: comments comments_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.comments
+    ADD CONSTRAINT comments_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(user_id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5058 (class 2606 OID 16842)
+-- Name: favorites favorites_listing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.favorites
+    ADD CONSTRAINT favorites_listing_id_fkey FOREIGN KEY (listing_id) REFERENCES public.listings(listing_id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5059 (class 2606 OID 16837)
+-- Name: favorites favorites_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.favorites
+    ADD CONSTRAINT favorites_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(user_id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5044 (class 2606 OID 16683)
+-- Name: listing_images listing_images_listing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.listing_images
+    ADD CONSTRAINT listing_images_listing_id_fkey FOREIGN KEY (listing_id) REFERENCES public.listings(listing_id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5062 (class 2606 OID 17164)
+-- Name: listing_videos listing_videos_listing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.listing_videos
+    ADD CONSTRAINT listing_videos_listing_id_fkey FOREIGN KEY (listing_id) REFERENCES public.listings(listing_id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5043 (class 2606 OID 16664)
+-- Name: listings listings_landlord_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.listings
+    ADD CONSTRAINT listings_landlord_id_fkey FOREIGN KEY (landlord_id) REFERENCES public.users(user_id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5045 (class 2606 OID 16715)
+-- Name: messages messages_listing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.messages
+    ADD CONSTRAINT messages_listing_id_fkey FOREIGN KEY (listing_id) REFERENCES public.listings(listing_id) ON DELETE SET NULL;
+
+
+--
+-- TOC entry 5046 (class 2606 OID 16710)
+-- Name: messages messages_receiver_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.messages
+    ADD CONSTRAINT messages_receiver_id_fkey FOREIGN KEY (receiver_id) REFERENCES public.users(user_id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5047 (class 2606 OID 16705)
+-- Name: messages messages_sender_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.messages
+    ADD CONSTRAINT messages_sender_id_fkey FOREIGN KEY (sender_id) REFERENCES public.users(user_id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5057 (class 2606 OID 16819)
+-- Name: notifications notifications_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.notifications
+    ADD CONSTRAINT notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(user_id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5051 (class 2606 OID 16772)
+-- Name: reports reports_reporter_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.reports
+    ADD CONSTRAINT reports_reporter_id_fkey FOREIGN KEY (reporter_id) REFERENCES public.users(user_id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5052 (class 2606 OID 16797)
+-- Name: reports reports_resolved_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.reports
+    ADD CONSTRAINT reports_resolved_by_fkey FOREIGN KEY (resolved_by) REFERENCES public.users(user_id);
+
+
+--
+-- TOC entry 5053 (class 2606 OID 16782)
+-- Name: reports reports_target_comment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.reports
+    ADD CONSTRAINT reports_target_comment_id_fkey FOREIGN KEY (target_comment_id) REFERENCES public.comments(comment_id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5054 (class 2606 OID 16777)
+-- Name: reports reports_target_listing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.reports
+    ADD CONSTRAINT reports_target_listing_id_fkey FOREIGN KEY (target_listing_id) REFERENCES public.listings(listing_id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5055 (class 2606 OID 16792)
+-- Name: reports reports_target_message_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.reports
+    ADD CONSTRAINT reports_target_message_id_fkey FOREIGN KEY (target_message_id) REFERENCES public.messages(message_id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5056 (class 2606 OID 16787)
+-- Name: reports reports_target_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.reports
+    ADD CONSTRAINT reports_target_user_id_fkey FOREIGN KEY (target_user_id) REFERENCES public.users(user_id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5061 (class 2606 OID 16883)
+-- Name: system_settings system_settings_updated_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.system_settings
+    ADD CONSTRAINT system_settings_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.users(user_id);
+
+
+--
+-- TOC entry 5060 (class 2606 OID 16862)
+-- Name: user_sessions user_sessions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.user_sessions
+    ADD CONSTRAINT user_sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(user_id) ON DELETE CASCADE;
+
+
+-- Completed on 2025-11-16 12:08:49
+
+--
+-- PostgreSQL database dump complete
+--
+
+\unrestrict 9U3QZRRx24r9i4ODELrB2ixRbcznhMWF0F2Ef0pvBnUF4cLfW9Tq7ykR3ubW4Ke
+
