@@ -7,7 +7,6 @@ class VideoReviewItem {
   final String authorAvatarUrl;
   final String thumbnailUrl;
   final String videoUrl;
-
   final int likeCount;
   final int commentCount;
   final int shareCount;
