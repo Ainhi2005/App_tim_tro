@@ -1,26 +1,29 @@
-// lib/views/widgets/video_review_card.dart
+// lib/widgets/video_review_card.dart
 import 'package:flutter/material.dart';
-import '../data/models/VideoReview.dart';
+import '../data/models/video_review_item.dart';
 
 class VideoReviewCard extends StatelessWidget {
-  final VideoReview review;
+  final VideoReviewItem review;
+  final VoidCallback onTap;
 
-  const VideoReviewCard({Key? key, required this.review}) : super(key: key);
+  const VideoReviewCard({Key? key, required this.review, required this.onTap}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 20.0),
-      // Đây là card màu trắng
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return InkWell(
+        onTap: onTap, // <-- SỬ DỤNG
         borderRadius: BorderRadius.circular(24.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 2,
-            blurRadius: 8,
-            offset: Offset(0, 4),
+        child: Container(
+          margin: EdgeInsets.only(bottom: 20.0),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24.0),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.1),
+                spreadRadius: 2,
+                blurRadius: 8,
+                offset: Offset(0, 4),
           ),
         ],
       ),
@@ -36,7 +39,7 @@ class VideoReviewCard extends StatelessWidget {
             _buildInfo(),
           ],
         ),
-      ),
+      ),),
     );
   }
 

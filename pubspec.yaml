@@ -31,6 +31,7 @@ dependencies:
   flutter:
     sdk: flutter
   provider: ^6.1.5
+  video_player: ^2.8.6
   carousel_slider: ^5.1.1
   http: ^1.2.1 # Hoặc phiên bản mới hơn
   retrofit: ^4.1.0 # Phiên bản cụ thể

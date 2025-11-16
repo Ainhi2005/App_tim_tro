@@ -1,20 +1,19 @@
-// lib/views/home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../data/viewModel/video_vm.dart';
+import '../../data/viewModel/video_viewmodel.dart';
 import '../../widgets/video_card.dart';
+import 'video_player_screen.dart'; // <-- 1. IMPORT MỚI
 
 class VideoPage extends StatelessWidget {
   const VideoPage({Key? key}) : super(key: key);
 
-  // Màu sắc chính từ ảnh
   final Color primaryColor = const Color(0xFF5A67D8);
   final Color screenBgColor = const Color(0xFFF4F4F9);
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (context) => video_vm(),
+      create: (context) => VideoViewModel(),
       child: Scaffold(
         backgroundColor: screenBgColor,
         body: SafeArea(
@@ -22,7 +21,20 @@ class VideoPage extends StatelessWidget {
             children: [
               _buildHeader(context),
               Expanded(
-                child: _buildVideoList(),
+                child: Consumer<VideoViewModel>(
+                  builder: (context, viewModel, child) {
+                    if (viewModel.isLoading) {
+                      return Center(child: CircularProgressIndicator());
+                    }
+
+                    if (viewModel.errorMessage != null) {
+                      return Center(child: Text(viewModel.errorMessage!));
+                    }
+
+                    // Gọi hàm _buildVideoList với viewModel đã sẵn sàng
+                    return _buildVideoList(context, viewModel);
+                  },
+                ),
               ),
             ],
           ),
@@ -31,13 +43,13 @@ class VideoPage extends StatelessWidget {
     );
   }
 
-  // Widget cho thanh Search và Filter
+  // Widget cho thanh Search và Filter (Giữ nguyên)
   Widget _buildHeader(BuildContext context) {
+    // ... (Không thay đổi)
     return Padding(
       padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 12.0),
       child: Row(
         children: [
-          // Search Bar
           Expanded(
             child: Container(
               decoration: BoxDecoration(
@@ -56,7 +68,6 @@ class VideoPage extends StatelessWidget {
             ),
           ),
           SizedBox(width: 12),
-          // Filter Button
           ElevatedButton.icon(
             onPressed: () {},
             icon: Icon(Icons.filter_list, size: 20),
@@ -76,21 +87,26 @@ class VideoPage extends StatelessWidget {
   }
 
   // Widget cho danh sách video
-  Widget _buildVideoList() {
-    // Dùng Consumer để lắng nghe vieo_vm
-    return Consumer<video_vm>(
-      builder: (context, viewModel, child) {
-        if (viewModel.isLoading) {
-          return Center(child: CircularProgressIndicator());
-        }
-
-        return ListView.builder(
-          padding: EdgeInsets.symmetric(horizontal: 16.0),
-          itemCount: viewModel.reviews.length,
-          itemBuilder: (context, index) {
-            final review = viewModel.reviews[index];
-            // Tách card ra 1 widget riêng
-            return VideoReviewCard(review: review);
+  Widget _buildVideoList(BuildContext context, VideoViewModel viewModel) {
+    return ListView.builder(
+      padding: EdgeInsets.symmetric(horizontal: 16.0),
+      itemCount: viewModel.reviews.length,
+      itemBuilder: (context, index) {
+        final review = viewModel.reviews[index];
+        return VideoReviewCard(
+          review: review,
+          // --- 2. THÊM LOGIC `onTap` ---
+          onTap: () {
+            // 3. ĐIỀU HƯỚNG SANG TRANG PLAYER
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => VideoPlayerScreen(
+                  reviews: viewModel.reviews, // Truyền cả danh sách
+                  initialIndex: index,        // Báo cho player biết bắt đầu từ video nào
+                ),
+              ),
+            );
           },
         );
       },
