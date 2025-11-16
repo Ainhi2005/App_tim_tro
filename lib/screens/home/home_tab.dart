@@ -283,9 +283,10 @@ class _HomeTabState extends State<HomeTab> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.grey.withAlpha((255 * 0.15).round()),
+            spreadRadius: 1,
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -386,9 +387,10 @@ class _HomeTabState extends State<HomeTab> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.grey.withAlpha((255 * 0.1).round()),
+            spreadRadius: 0,
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
