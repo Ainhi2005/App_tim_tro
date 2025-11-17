@@ -23,7 +23,7 @@ class RoomCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           child: Image.network(room.imageUrl, width: 60, height: 60, fit: BoxFit.cover),
         ),
-        title: Text(room.name, style: AppTextStyles.title),
+        title: Text(room.title, style: AppTextStyles.title),
         subtitle: Text(room.address, style: AppTextStyles.subtitle),
         trailing: Text(
           '\$${room.price}',

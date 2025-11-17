@@ -1,3 +1,4 @@
+import 'package:app_tim_tro/screens/home/widgets/login_page.dart';
 import 'package:flutter/material.dart';
 import 'screens/home/home_page.dart';
 
@@ -13,7 +14,7 @@ class TimTroApp extends StatelessWidget {
         primaryColor: const Color(0xFF1E40AF),
         scaffoldBackgroundColor: Colors.white,
       ),
-      home: const HomePage(),
+      home: const LoginPage(),
     );
   }
 }
