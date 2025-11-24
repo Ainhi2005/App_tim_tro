@@ -1,33 +1,29 @@
-// lib/data/models/room_model.dart
+// lib/data/models/room_model.dart (Bản Gộp)
 
 import 'package:json_annotation/json_annotation.dart';
 
-part 'room_model.g.dart';
+part 'room_model.g.dart'; // File .g.dart sẽ chứa code cho cả 3 class
 
 // --- CÁC HÀM HELPER ĐỂ PHÂN TÍCH JSON AN TOÀN ---
 
-// Chuyển đổi một giá trị (có thể là null, String, int) thành int an toàn
 int _parseInt(dynamic value) {
   if (value == null) return 0;
   return int.tryParse(value.toString()) ?? 0;
 }
-
-// Chuyển đổi một giá trị (có thể là null) thành String an toàn
 String _parseString(dynamic value) {
   return value?.toString() ?? '';
 }
-
-// Chuyển đổi một giá trị (có thể là null, String, int, double) thành double an toàn
 double _parseDouble(dynamic value) {
   if (value == null) return 0.0;
   return double.tryParse(value.toString()) ?? 0.0;
 }
 
+// =======================================================
+// 1. CORE ENTITY MODEL (RoomModel - Giữ nguyên)
+// =======================================================
 
 @JsonSerializable()
 class RoomModel {
-  // 1. Khai báo các thuộc tính (properties) của class
-
   @JsonKey(name: 'listing_id', fromJson: _parseInt)
   final int id;
 
@@ -46,18 +42,59 @@ class RoomModel {
   @JsonKey(name: 'image_url', fromJson: _parseString)
   final String imageUrl;
 
-  // 2. Constructor: Các tham số phải khớp với các thuộc tính đã khai báo
   RoomModel({
-    required this.id,       // <- Thêm 'id'
-    required this.title,    // <- Sửa 'name' thành 'title'
+    required this.id,
+    required this.title,
     required this.address,
     required this.price,
-    required this.area,     // <- Thêm 'area'
+    required this.area,
     required this.imageUrl,
   });
 
-  // 3. Các factory và method để làm việc với json_serializable
   factory RoomModel.fromJson(Map<String, dynamic> json) => _$RoomModelFromJson(json);
   Map<String, dynamic> toJson() => _$RoomModelToJson(this);
 }
 
+// =======================================================
+// 2. RESPONSE DATA MODEL (HomeRoomData - Lớp lồng cho trường 'data')
+// =======================================================
+
+@JsonSerializable()
+class HomeRoomData {
+  @JsonKey(name: 'explore_rooms')
+  final List<RoomModel> exploreRooms;
+
+  @JsonKey(name: 'featured_rooms')
+  final List<RoomModel> featuredRooms;
+
+  final int total;
+
+  HomeRoomData({
+    required this.exploreRooms,
+    required this.featuredRooms,
+    required this.total,
+  });
+
+  factory HomeRoomData.fromJson(Map<String, dynamic> json) => _$HomeRoomDataFromJson(json);
+  Map<String, dynamic> toJson() => _$HomeRoomDataToJson(this);
+}
+
+// =======================================================
+// 3. API RESPONSE WRAPPER (HomeRoomResponse - Lớp ngoài)
+// =======================================================
+
+@JsonSerializable()
+class HomeRoomResponse {
+  final String status;
+
+  @JsonKey(name: 'data')
+  final HomeRoomData data;
+
+  HomeRoomResponse({
+    required this.status,
+    required this.data,
+  });
+
+  factory HomeRoomResponse.fromJson(Map<String, dynamic> json) => _$HomeRoomResponseFromJson(json);
+  Map<String, dynamic> toJson() => _$HomeRoomResponseToJson(this);
+}

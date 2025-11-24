@@ -14,7 +14,7 @@ class _ApiService implements ApiService {
     this.baseUrl,
     this.errorLogger,
   }) {
-    baseUrl ??= 'http://192.168.100.202:5000/';
+    baseUrl ??= 'http://192.168.100.155:5000/';
   }
 
   final Dio _dio;
@@ -92,19 +92,19 @@ class _ApiService implements ApiService {
   }
 
   @override
-  Future<List<RoomModel>> getRooms() async {
+  Future<HomeRoomResponse> getHomeRooms() async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
     const Map<String, dynamic>? _data = null;
-    final _options = _setStreamType<List<RoomModel>>(Options(
+    final _options = _setStreamType<HomeRoomResponse>(Options(
       method: 'GET',
       headers: _headers,
       extra: _extra,
     )
         .compose(
           _dio.options,
-          'api/v1/rooms',
+          'api/v1/rooms/home',
           queryParameters: queryParameters,
           data: _data,
         )
@@ -113,12 +113,10 @@ class _ApiService implements ApiService {
           _dio.options.baseUrl,
           baseUrl,
         )));
-    final _result = await _dio.fetch<List<dynamic>>(_options);
-    late List<RoomModel> _value;
+    final _result = await _dio.fetch<Map<String, dynamic>>(_options);
+    late HomeRoomResponse _value;
     try {
-      _value = _result.data!
-          .map((dynamic i) => RoomModel.fromJson(i as Map<String, dynamic>))
-          .toList();
+      _value = HomeRoomResponse.fromJson(_result.data!);
     } on Object catch (e, s) {
       errorLogger?.logError(e, s, _options);
       rethrow;

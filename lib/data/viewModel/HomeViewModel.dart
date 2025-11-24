@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import '../models/room_model.dart';
-import '../repositories/home_repositor.dart';
+import '../repositories/home_repository.dart';
 import '../service/api_service.dart';
 import 'package:dio/dio.dart';
 
@@ -61,15 +61,14 @@ class HomeViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final List<RoomModel> rooms = await _repo.getRooms();
+      // 1. Gọi hàm Repository mới
+      final Map<String, List<RoomModel>> data = await _repo.getHomeRooms();
 
-      if (rooms.length >= 3) {
-        exploreRooms = rooms.sublist(0, 3);
-        featuredRooms = rooms.sublist(3);
-      } else {
-        exploreRooms = rooms;
-        featuredRooms = [];
-      }
+      // 2. Phân tách dữ liệu
+      exploreRooms = data['explore'] ?? [];
+      featuredRooms = data['featured'] ?? [];
+
+      // Xóa logic sublist cũ vì backend đã phân chia
 
       _state = ViewState.success;
       notifyListeners();

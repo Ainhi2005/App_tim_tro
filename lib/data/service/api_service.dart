@@ -9,7 +9,7 @@ import '../models/room_model.dart';
 
 part 'api_service.g.dart';
 
-@RestApi(baseUrl: "http://192.168.100.202:5000/")
+@RestApi(baseUrl: "http://192.168.100.155:5000/")
 abstract class ApiService {
   factory ApiService(Dio dio, {String baseUrl}) = _ApiService;
 
@@ -19,6 +19,6 @@ abstract class ApiService {
   @POST("api/v1/auth/register")
   Future<RegisterResponse> register(@Body() RegisterRequest request);
 
-  @GET("api/v1/rooms/")
-  Future<List<RoomModel>> getRooms();
+  @GET("api/v1/rooms/home")
+  Future<HomeRoomResponse> getHomeRooms();
 }
