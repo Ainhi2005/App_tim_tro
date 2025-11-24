@@ -50,6 +50,8 @@ const ListingImage = sequelize.define('ListingImage', {
   tableName: 'listing_images',
   timestamps: true,
   underscored: true,
+  createdAt: 'created_at', // Map đúng tên cột trong DB
+  updatedAt: false,        // ⛔️ Tắt updated_at vì DB không có cột này
   scopes: {
     byListing: (listingId) => ({
       where: { listing_id: listingId }
