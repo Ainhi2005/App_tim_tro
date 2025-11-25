@@ -26,12 +26,12 @@ exports.getComments = async (req, res) => {
 exports.addComment = async (req, res) => {
   try {
     const userId = req.user.user_id;
-    const { listing_id, content } = req.body;
-
+    const { listing_id, content, rating } = req.body;
     const newComment = await Comment.create({
       user_id: userId,
       listing_id,
       content,
+      rating: rating || null,
       status: 'approved'
     });
 
