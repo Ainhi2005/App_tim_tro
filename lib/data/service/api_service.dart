@@ -16,12 +16,21 @@ abstract class ApiService {
 
   @POST("api/v1/auth/login")
   Future<LoginResponse> login(@Body() LoginRequest request);
-
   @POST("api/v1/auth/register")
   Future<RegisterResponse> register(@Body() RegisterRequest request);
-
   @GET("api/v1/rooms/home")
   Future<HomeRoomResponse> getHomeRooms();
   @GET("api/v1/videos")
   Future<VideoFeedResponse> getVideoFeed();
+  // 1. Thả tim: Trả về dynamic (hoặc void)
+  @POST("api/v1/favorites")
+  Future<dynamic> toggleFavorite(@Body() Map<String, dynamic> body);
+
+  // 2. Lấy comment: Trả về dynamic (để tránh lỗi generator)
+  @GET("api/v1/comments")
+  Future<dynamic> getComments(@Query("listingId") String listingId);
+
+  // 3. Gửi comment: Trả về dynamic
+  @POST("api/v1/comments")
+  Future<dynamic> addComment(@Body() Map<String, dynamic> body);
 }

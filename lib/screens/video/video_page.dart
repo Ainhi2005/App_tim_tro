@@ -97,13 +97,15 @@ class VideoPage extends StatelessWidget {
           review: review,
           // --- 2. THÊM LOGIC `onTap` ---
           onTap: () {
-            // 3. ĐIỀU HƯỚNG SANG TRANG PLAYER
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => VideoPlayerScreen(
-                  reviews: viewModel.reviews, // Truyền cả danh sách
-                  initialIndex: index,        // Báo cho player biết bắt đầu từ video nào
+                builder: (_) => ChangeNotifierProvider.value( // Dùng .value để tái sử dụng ViewModel cũ
+                  value: viewModel,
+                  child: VideoPlayerScreen(
+                    reviews: viewModel.reviews,
+                    initialIndex: index,
+                  ),
                 ),
               ),
             );

@@ -4,6 +4,8 @@ import '../../data/models/video_review_item.dart';
 import '../../data/viewModel/video_player_viewmodel.dart';
 import 'package:video_player/video_player.dart';
 import '../../widgets/video_overlay_ui.dart';
+import '../../widgets/comment_bottom_sheet.dart';
+import '../../data/viewModel/video_viewmodel.dart';
 
 class VideoPlayerScreen extends StatelessWidget {
   final List<VideoReviewItem> reviews;
@@ -42,13 +44,32 @@ class VideoPlayerScreen extends StatelessWidget {
 
                 // Phần UI overlay
                 Consumer<VideoPlayerViewModel>(
-                  builder: (context, viewModel, child) {
+                  builder: (context, playerViewModel, child) {
+                    // Lấy viewModel chính (chứa logic like/comment) từ context
+                    final mainViewModel = Provider.of<VideoViewModel>(context);
+                    final currentItem = mainViewModel.reviews[playerViewModel.currentIndex];
+
                     return VideoOverlayUI(
-                      item: viewModel.reviews[viewModel.currentIndex],
+                      item: currentItem,
+                      onLike: () {
+                        // Gọi hàm like trong mainViewModel
+                        mainViewModel.toggleLike(playerViewModel.currentIndex);
+                      },
+                      onComment: () {
+                        // Mở bottom sheet comment
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                          builder: (ctx) => ChangeNotifierProvider.value(
+                            value: mainViewModel, // Truyền tiếp ViewModel vào sheet
+                            child: CommentBottomSheet(listingId: currentItem.listingId),
+                          ),
+                        );
+                      },
                     );
                   },
                 ),
-
                 // Nút Back
                 Positioned(
                   top: 50,

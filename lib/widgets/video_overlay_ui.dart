@@ -4,9 +4,15 @@ import '../data/models/video_review_item.dart';
 
 class VideoOverlayUI extends StatelessWidget {
   final VideoReviewItem item;
+  final VoidCallback onLike;    // Callback khi bấm Like
+  final VoidCallback onComment; // Callback khi bấm Comment
 
-  const VideoOverlayUI({Key? key, required this.item}) : super(key: key);
-
+  const VideoOverlayUI({
+    Key? key,
+    required this.item,
+    required this.onLike,       // Yêu cầu truyền vào
+    required this.onComment,    // Yêu cầu truyền vào
+  }) : super(key: key);
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -67,31 +73,29 @@ class VideoOverlayUI extends StatelessWidget {
   Widget _buildSocialPanel() {
     return Column(
       children: [
-        CircleAvatar(
-          radius: 24,
-          backgroundImage: NetworkImage(item.authorAvatarUrl),
-        ),
+        CircleAvatar(radius: 24, backgroundImage: NetworkImage(item.authorAvatarUrl)),
         SizedBox(height: 20),
+
+        // NÚT LIKE
         _buildSocialButton(
-          icon: Icons.favorite,
+          icon: item.isLiked ? Icons.favorite : Icons.favorite_border, // Đổi icon
+          color: item.isLiked ? Colors.redAccent : Colors.white,       // Đổi màu
           text: item.likeCount.toString(),
-          color: Colors.redAccent,
+          onTap: onLike, // Gọi callback
         ),
         SizedBox(height: 15),
+
+        // NÚT COMMENT
         _buildSocialButton(
           icon: Icons.comment,
           text: item.commentCount.toString(),
+          onTap: onComment, // Gọi callback
         ),
         SizedBox(height: 15),
-        _buildSocialButton(
-          icon: Icons.share,
-          text: item.shareCount.toString(),
-        ),
+
+        _buildSocialButton(icon: Icons.share, text: item.shareCount.toString(), onTap: () {}),
         SizedBox(height: 15),
-        _buildSocialButton(
-          icon: Icons.watch_later_outlined,
-          text: '', // Hoặc "Lưu"
-        ),
+        _buildSocialButton(icon: Icons.watch_later_outlined, text: '', onTap: () {}),
       ],
     );
   }
@@ -101,22 +105,19 @@ class VideoOverlayUI extends StatelessWidget {
     required IconData icon,
     required String text,
     Color color = Colors.white,
+    required VoidCallback onTap,
   }) {
-    return Column(
-      children: [
-        Icon(icon, color: color, size: 32),
-        if (text.isNotEmpty) ...[
-          SizedBox(height: 4),
-          Text(
-            text,
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-            ),
-          )
-        ]
-      ],
+    return GestureDetector( // Dùng GestureDetector hoặc InkWell
+      onTap: onTap,
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 32, shadows: [Shadow(blurRadius: 2, color: Colors.black26)]),
+          if (text.isNotEmpty) ...[
+            SizedBox(height: 4),
+            Text(text, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14, shadows: [Shadow(blurRadius: 2, color: Colors.black26)])),
+          ]
+        ],
+      ),
     );
   }
 }
