@@ -6,10 +6,11 @@ import '../models/request/register_request.dart';
 import '../models/response/loginResponse.dart';
 import '../models/response/register_response.dart';
 import '../models/room_model.dart';
+import '../models/response/video_feed_response.dart';
 
 part 'api_service.g.dart';
 
-@RestApi(baseUrl: "http://192.168.100.155:5000/")
+@RestApi(baseUrl: "http://192.168.1.2:5000/")
 abstract class ApiService {
   factory ApiService(Dio dio, {String baseUrl}) = _ApiService;
 
@@ -21,4 +22,6 @@ abstract class ApiService {
 
   @GET("api/v1/rooms/home")
   Future<HomeRoomResponse> getHomeRooms();
+  @GET("api/v1/videos")
+  Future<VideoFeedResponse> getVideoFeed();
 }

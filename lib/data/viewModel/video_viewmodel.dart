@@ -1,13 +1,13 @@
 //lib/data/viewModel/video_viewmodel.dart
 import 'package:flutter/material.dart';
 import '../models/video_review_item.dart';
-import '../service/video_service.dart'; // <-- Gọi Service
+import '../repositories/VideoRepository.dart';// <-- Gọi Service
 
 // 1. Đổi tên class cho chuẩn Dart
 class VideoViewModel extends ChangeNotifier {
 
   // 2. Tiêm (inject) service vào
-  final VideoService _videoService = VideoService();
+  final VideoRepository _videoRepository = VideoRepository();
 
   List<VideoReviewItem> _reviews = [];
   bool _isLoading = false;
@@ -30,7 +30,7 @@ class VideoViewModel extends ChangeNotifier {
 
     try {
       // 4. Ủy quyền việc fetch cho Service
-      _reviews = await _videoService.fetchVideoReviews();
+      _reviews = await _videoRepository.fetchVideoReviews();
 
     } catch (e) {
       // 5. Bắt lỗi nếu service thất bại
